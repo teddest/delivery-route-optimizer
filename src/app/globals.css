@@ -19,8 +19,23 @@
   }
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
-  background: var(--background);
+  background: #f5f7fa;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+button:not(:disabled),
+a,
+[role="button"] {
+  cursor: pointer;
+}
+
+.leaflet-interactive,
+.leaflet-marker-icon {
+  cursor: pointer;
 }
