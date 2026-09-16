@@ -3,14 +3,23 @@ import { db } from "@/lib/db";
 import type { Location, Route, Vehicle } from "@/types/routing";
 
 function distance(from: Location, to: Location) {
-  return Math.hypot(from.x - to.x, from.y - to.y);
+  const earthRadiusKm = 6371;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const deltaLat = ((to.lat - from.lat) * Math.PI) / 180;
+  const deltaLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 export async function POST() {
   try {
     const [locationsResult, vehiclesResult] = await Promise.all([
       db.query<Location>(`
-        SELECT id, name, demand, x, y,
+        SELECT id, name, address, source_id AS "sourceId", demand, x, y,
           ST_X(location)::float8 AS lng,
           ST_Y(location)::float8 AS lat
         FROM locations ORDER BY id

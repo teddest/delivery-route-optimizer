@@ -61,7 +61,7 @@ export function RouteMap({ locations, routes }: { locations: Location[]; routes:
           weight: 2,
         })
           .addTo(instance)
-          .bindPopup(`<strong>${location.name}</strong><br />Demand: ${location.demand}`);
+          .bindPopup(`<strong>${location.name}</strong><br />${location.address ?? "No address"}<br />Demand: ${location.demand}`);
       }
     }
 

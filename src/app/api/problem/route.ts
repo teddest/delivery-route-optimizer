@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const [locations, vehicles] = await Promise.all([
       db.query<LocationRow>(`
-        SELECT id, name, demand, x, y,
+        SELECT id, name, address, source_id AS "sourceId", demand, x, y,
           ST_X(location)::float8 AS lng,
           ST_Y(location)::float8 AS lat
         FROM locations ORDER BY id

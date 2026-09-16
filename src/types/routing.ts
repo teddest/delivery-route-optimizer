@@ -1,6 +1,8 @@
 export type Location = {
   id: number;
   name: string;
+  address: string | null;
+  sourceId: string | null;
   demand: number;
   x: number;
   y: number;

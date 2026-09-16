@@ -1,6 +1,6 @@
 # Delivery Route Optimizer
 
-A Next.js + PostgreSQL/PostGIS application for exploring capacitated vehicle routing benchmarks.
+A Next.js + PostgreSQL/PostGIS application for exploring delivery routes with real San Francisco address points.
 
 ## Stack
 
@@ -11,22 +11,19 @@ A Next.js + PostgreSQL/PostGIS application for exploring capacitated vehicle rou
 - Leaflet
 - `pg` for database access
 
-## Dataset
+## Data
 
-This app starts with the public **A-n32-k5** CVRP benchmark from [CVRPLIB](https://galgos.inf.puc-rio.br/cvrplib/en/instances).
+The active scenario uses the **San Francisco Addresses - Enterprise Addressing System** dataset from the City and County of San Francisco:
 
-The instance contains:
+```text
+https://data.sf.gov/resource/3mea-di5p.json
+```
 
-- 1 distribution center
-- 31 delivery stops
-- 5 vehicles
-- Vehicle capacity of 100
-- Customer demand values
-- Benchmark best-known distance of 784
+It contains official address points, street addresses, neighborhoods, and longitude/latitude coordinates. The app uses a deterministic farthest-point sample of 31 customer addresses plus `701 MARKET ST` as the demonstration distribution center.
 
-The original instance file is preserved at `data/A-n32-k5.vrp`.
+The original CVRPLIB `A-n32-k5` benchmark is preserved at `data/A-n32-k5.vrp` for future solver comparison. Its abstract coordinates are no longer used for the active map scenario.
 
-The benchmark coordinates are planar EUC_2D coordinates. They are projected into the San Francisco area only to make the problem visible on a map; the displayed road map is illustrative, not part of the benchmark's distance calculation.
+The customer demand values remain from the benchmark so we can retain a repeatable capacity-constrained optimization problem while using realistic geographic points.
 
 ## Getting started
 
@@ -67,23 +64,27 @@ pnpm db:reset    # Delete the volume and recreate the database (destructive)
 
 ## Current functionality
 
-- Load the A-n32-k5 problem from PostGIS
-- Display the depot and customer stops on a Leaflet map
+- Load real San Francisco addresses from PostGIS
+- Display the depot and customer addresses on a Leaflet map
+- Show address details in point popups
 - Run a capacity-aware nearest-neighbor baseline optimizer
+- Calculate great-circle distance in kilometers
 - Display generated vehicle routes on the map
 - Show vehicle loads, stops, and route distance
 
-The current optimizer is intentionally a baseline. The next step is replacing it with OR-Tools and comparing its result with the known benchmark value.
+The current optimizer is intentionally a baseline. The next step is using OSRM or Valhalla to calculate a road-travel matrix, then replacing the great-circle cost with actual driving distance and duration.
 
 ## Project structure
 
 ```text
-src/app/api/problem/             Benchmark problem API
+src/app/api/problem/             Real address problem API
 src/app/api/routes/optimize/     Baseline route optimization API
 src/components/route-map.tsx     Leaflet map and route rendering
 src/lib/db.ts                    Shared PostgreSQL connection pool
 src/types/routing.ts             Shared route types
-data/A-n32-k5.vrp                Original CVRPLIB instance
-db/init/                         PostGIS schema and seed data
+data/A-n32-k5.vrp                Original CVRPLIB benchmark
+db/init/001_schema.sql           Base schema and benchmark seed
+db/init/002_seed_real_sf_addresses.sql
+                                  Real San Francisco address migration
 docker-compose.yml               Local PostGIS service
 ```
