@@ -10,6 +10,7 @@ export default function Home() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export default function Home() {
           setLocations(data.locations);
           setVehicles(data.vehicles);
           setRoutes([]);
+          setSelectedVehicleId(null);
         }
       } catch (requestError) {
         console.error(requestError);
@@ -55,6 +57,7 @@ export default function Home() {
       if (!response.ok) throw new Error("Unable to optimize routes.");
       const data: { routes: Route[] } = await response.json();
       setRoutes(data.routes);
+      setSelectedVehicleId(null);
     } catch (requestError) {
       console.error(requestError);
       setError("Unable to optimize routes.");
@@ -88,7 +91,7 @@ export default function Home() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Optimization workspace</p>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Turn stops into routes.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Optimize a real San Francisco delivery scenario using address points from the city’s Enterprise Addressing System.
+              Optimize a real Bay Area delivery scenario using official address points from San Francisco, Oakland, and Berkeley.
             </p>
           </div>
           <button
@@ -123,12 +126,12 @@ export default function Home() {
             <div className="flex items-center justify-between border-b border-slate-200 p-4">
               <div>
                 <h2 className="font-semibold">Route map</h2>
-                <p className="mt-1 text-xs text-slate-500">San Francisco addresses · depot, stops, and generated routes</p>
+                <p className="mt-1 text-xs text-slate-500">Bay Area addresses · depot, stops, and generated road routes</p>
               </div>
               <span className="text-xs text-slate-400">Total demand: {totalDemand}</span>
             </div>
             <div className="min-h-0 flex-1">
-              <RouteMap locations={locations} routes={routes} />
+              <RouteMap locations={locations} routes={routes} selectedVehicleId={selectedVehicleId} />
             </div>
           </div>
 
@@ -141,7 +144,12 @@ export default function Home() {
               {isLoading && <p className="p-5 text-sm text-slate-500">Loading addresses…</p>}
               {!isLoading && routes.length === 0 && <p className="p-5 text-sm text-slate-500">Click “Optimize routes” to assign the delivery stops.</p>}
               {routes.map((route, index) => (
-                <div className="p-5" key={route.vehicleId}>
+                <button
+                  className={`block w-full p-5 text-left transition hover:bg-slate-50 ${selectedVehicleId === route.vehicleId ? "bg-indigo-50" : ""}`}
+                  key={route.vehicleId}
+                  onClick={() => setSelectedVehicleId(route.vehicleId)}
+                  type="button"
+                >
                   <div className="flex items-center gap-3">
                     <span className="h-3 w-3 rounded-full" style={{ backgroundColor: routeColors[index % routeColors.length] }} />
                     <span className="flex-1 text-sm font-medium">{route.vehicleName}</span>
@@ -149,11 +157,11 @@ export default function Home() {
                   </div>
                   <p className="mt-2 text-xs text-slate-500">{route.stops.length - 2} stops · {route.distance.toFixed(1)} km · {route.durationMinutes} min</p>
                   <p className="mt-2 truncate font-mono text-[11px] text-slate-400">{route.stops.join(" → ")}</p>
-                </div>
+                </button>
               ))}
             </div>
             <div className="m-5 rounded-lg bg-slate-50 p-4">
-              <p className="text-xs font-semibold text-slate-700">Benchmark</p>
+              <p className="text-xs font-semibold text-slate-700">Road routing</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">Points come from official Bay Area address datasets. Routes use the public OSRM street network for distance and duration.</p>
             </div>
           </aside>

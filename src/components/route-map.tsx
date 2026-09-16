@@ -6,9 +6,17 @@ import type { Location, Route } from "@/types/routing";
 
 const routeColors = ["#4f46e5", "#0d9488", "#d97706", "#db2777", "#16a34a"];
 
-export function RouteMap({ locations, routes }: { locations: Location[]; routes: Route[] }) {
+type RouteMapProps = {
+  locations: Location[];
+  routes: Route[];
+  selectedVehicleId: number | null;
+};
+
+export function RouteMap({ locations, routes, selectedVehicleId }: RouteMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
+  const animationMarker = useRef<Leaflet.CircleMarker | null>(null);
+  const animationFrame = useRef<number | null>(null);
 
   useEffect(() => {
     let disposed = false;
@@ -72,10 +80,68 @@ export function RouteMap({ locations, routes }: { locations: Location[]; routes:
 
     return () => {
       disposed = true;
+      if (animationFrame.current !== null) window.cancelAnimationFrame(animationFrame.current);
+      animationMarker.current?.remove();
+      animationMarker.current = null;
       map.current?.remove();
       map.current = null;
     };
   }, [locations, routes]);
+
+  useEffect(() => {
+    if (!selectedVehicleId || !map.current) return;
+
+    const route = routes.find((candidate) => candidate.vehicleId === selectedVehicleId);
+    if (!route) return;
+
+    const byId = new Map(locations.map((location) => [location.id, location]));
+    const points = route.geometry?.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]) ??
+      route.stops
+        .map((id) => byId.get(id))
+        .filter((location): location is Location => Boolean(location))
+        .map((location) => [location.lat, location.lng] as [number, number]);
+
+    if (points.length < 2) return;
+
+    let cancelled = false;
+    if (animationFrame.current !== null) window.cancelAnimationFrame(animationFrame.current);
+    animationMarker.current?.remove();
+
+    async function animateRoute() {
+      const { default: L } = await import("leaflet");
+      if (cancelled || !map.current) return;
+
+      const color = routeColors[routes.findIndex((candidate) => candidate.vehicleId === selectedVehicleId) % routeColors.length];
+      const marker = L.circleMarker(points[0], {
+        radius: 9,
+        color: "#ffffff",
+        fillColor: color,
+        fillOpacity: 1,
+        weight: 3,
+      }).addTo(map.current);
+      animationMarker.current = marker;
+      map.current.fitBounds(L.latLngBounds(points), { padding: [40, 40], duration: 0.8 });
+
+      const startedAt = performance.now();
+      const duration = 6000;
+      const animate = (timestamp: number) => {
+        const progress = Math.min(1, (timestamp - startedAt) / duration);
+        const point = points[Math.min(points.length - 1, Math.floor(progress * (points.length - 1)))];
+        marker.setLatLng(point);
+        if (progress < 1 && !cancelled) animationFrame.current = window.requestAnimationFrame(animate);
+      };
+      animationFrame.current = window.requestAnimationFrame(animate);
+    }
+
+    animateRoute();
+
+    return () => {
+      cancelled = true;
+      if (animationFrame.current !== null) window.cancelAnimationFrame(animationFrame.current);
+      animationMarker.current?.remove();
+      animationMarker.current = null;
+    };
+  }, [locations, routes, selectedVehicleId]);
 
   return <div ref={mapContainer} className="h-full min-h-[620px] w-full" />;
 }
