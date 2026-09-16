@@ -95,11 +95,14 @@ export function RouteMap({ locations, routes, selectedVehicleId }: RouteMapProps
     if (!route) return;
 
     const byId = new Map(locations.map((location) => [location.id, location]));
-    const points = route.geometry?.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]) ??
-      route.stops
-        .map((id) => byId.get(id))
-        .filter((location): location is Location => Boolean(location))
-        .map((location) => [location.lat, location.lng] as [number, number]);
+    const geometryPoints = route.geometry?.coordinates
+      .filter((coordinate) => Array.isArray(coordinate) && coordinate.length >= 2)
+      .map(([lng, lat]) => [lat, lng] as [number, number]);
+    const stopPoints = route.stops
+      .map((id) => byId.get(id))
+      .filter((location): location is Location => Boolean(location))
+      .map((location) => [location.lat, location.lng] as [number, number]);
+    const points = geometryPoints && geometryPoints.length > 1 ? geometryPoints : stopPoints;
 
     if (points.length < 2) return;
 
@@ -125,8 +128,10 @@ export function RouteMap({ locations, routes, selectedVehicleId }: RouteMapProps
       const startedAt = performance.now();
       const duration = 6000;
       const animate = (timestamp: number) => {
-        const progress = Math.min(1, (timestamp - startedAt) / duration);
-        const point = points[Math.min(points.length - 1, Math.floor(progress * (points.length - 1)))];
+        const progress = Math.min(1, Math.max(0, (timestamp - startedAt) / duration));
+        const pointIndex = Math.min(points.length - 1, Math.floor(progress * (points.length - 1)));
+        const point = points[pointIndex];
+        if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) return;
         marker.setLatLng(point);
         if (progress < 1 && !cancelled) animationFrame.current = window.requestAnimationFrame(animate);
       };
