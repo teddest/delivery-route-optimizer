@@ -1,6 +1,6 @@
 # Delivery Route Optimizer
 
-A Next.js + PostgreSQL/PostGIS application for exploring delivery routes with real San Francisco address points.
+A Next.js + PostgreSQL/PostGIS application for exploring delivery routes with real Bay Area address points.
 
 ## Stack
 
@@ -13,17 +13,18 @@ A Next.js + PostgreSQL/PostGIS application for exploring delivery routes with re
 
 ## Data
 
-The active scenario uses the **San Francisco Addresses - Enterprise Addressing System** dataset from the City and County of San Francisco:
+The active scenario uses official address points from:
 
-```text
-https://data.sf.gov/resource/3mea-di5p.json
-```
+- [San Francisco Enterprise Addressing System](https://data.sf.gov/resource/3mea-di5p.json)
+- [Alameda County Address Points](https://hub.arcgis.com/datasets/4610acbf49364583986d45ee4106cc3f)
 
-It contains official address points, street addresses, neighborhoods, and longitude/latitude coordinates. The app uses a deterministic farthest-point sample of 31 customer addresses plus `701 MARKET ST` as the demonstration distribution center.
+The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, and 10 Berkeley addresses, plus `701 MARKET ST` as the demonstration distribution center.
 
 The original CVRPLIB `A-n32-k5` benchmark is preserved at `data/A-n32-k5.vrp` for future solver comparison. Its abstract coordinates are no longer used for the active map scenario.
 
 The customer demand values remain from the benchmark so we can retain a repeatable capacity-constrained optimization problem while using realistic geographic points.
+
+Routes are calculated against the public [OSRM](https://project-osrm.org/) street network. The optimizer requests a road-distance matrix, then fetches detailed road geometry and travel duration for each generated route. The public OSRM server is suitable for development and demos, not production-scale traffic.
 
 ## Getting started
 
@@ -68,11 +69,11 @@ pnpm db:reset    # Delete the volume and recreate the database (destructive)
 - Display the depot and customer addresses on a Leaflet map
 - Show address details in point popups
 - Run a capacity-aware nearest-neighbor baseline optimizer
-- Calculate great-circle distance in kilometers
-- Display generated vehicle routes on the map
-- Show vehicle loads, stops, and route distance
+- Calculate road distance and duration using OSRM
+- Display detailed street-following route geometry on the map
+- Show vehicle loads, stops, route distance, and travel duration
 
-The current optimizer is intentionally a baseline. The next step is using OSRM or Valhalla to calculate a road-travel matrix, then replacing the great-circle cost with actual driving distance and duration.
+The current optimizer is intentionally a baseline. The next step is replacing the greedy assignment with OR-Tools while retaining the OSRM road matrix.
 
 ## Project structure
 
@@ -86,5 +87,7 @@ data/A-n32-k5.vrp                Original CVRPLIB benchmark
 db/init/001_schema.sql           Base schema and benchmark seed
 db/init/002_seed_real_sf_addresses.sql
                                   Real San Francisco address migration
+db/init/003_seed_oakland_berkeley_addresses.sql
+                                  Real East Bay address migration
 docker-compose.yml               Local PostGIS service
 ```

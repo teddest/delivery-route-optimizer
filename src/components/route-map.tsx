@@ -41,14 +41,17 @@ export function RouteMap({ locations, routes }: { locations: Location[]; routes:
           .filter((location): location is Location => Boolean(location))
           .map((location) => [location.lat, location.lng] as [number, number]);
 
-        if (points.length > 1) {
-          L.polyline(points, {
+        const roadPoints = route.geometry?.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]);
+        const routePoints = roadPoints?.length ? roadPoints : points;
+
+        if (routePoints.length > 1) {
+          L.polyline(routePoints, {
             color: routeColors[index % routeColors.length],
             weight: 4,
             opacity: 0.8,
           })
             .addTo(instance)
-            .bindTooltip(`${route.vehicleName} · ${route.load} demand`);
+            .bindTooltip(`${route.vehicleName} · ${route.load} demand · ${route.durationMinutes} min`);
         }
       }
 

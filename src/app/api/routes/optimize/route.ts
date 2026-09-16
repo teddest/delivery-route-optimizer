@@ -1,19 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getRoadMatrix, getRoadRoute } from "@/lib/osrm";
 import type { Location, Route, Vehicle } from "@/types/routing";
-
-function distance(from: Location, to: Location) {
-  const earthRadiusKm = 6371;
-  const lat1 = (from.lat * Math.PI) / 180;
-  const lat2 = (to.lat * Math.PI) / 180;
-  const deltaLat = ((to.lat - from.lat) * Math.PI) / 180;
-  const deltaLng = ((to.lng - from.lng) * Math.PI) / 180;
-  const haversine =
-    Math.sin(deltaLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
-
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-}
 
 export async function POST() {
   try {
@@ -27,11 +15,28 @@ export async function POST() {
       db.query<Vehicle>("SELECT id, name, capacity FROM vehicles ORDER BY id"),
     ]);
 
-    const locations = new Map(locationsResult.rows.map((location) => [location.id, location]));
+    const allLocations = locationsResult.rows;
+    const locations = new Map(allLocations.map((location) => [location.id, location]));
+    const locationIndexes = new Map(allLocations.map((location, index) => [location.id, index]));
     const depot = locations.get(1);
     if (!depot) throw new Error("The routing problem has no depot.");
 
-    const remaining = new Set(locationsResult.rows.filter((location) => location.id !== depot.id).map((location) => location.id));
+    const roadMatrix = await getRoadMatrix(allLocations);
+    const roadDistance = (from: Location, to: Location) => {
+      const fromIndex = locationIndexes.get(from.id);
+      const toIndex = locationIndexes.get(to.id);
+      const distance = fromIndex === undefined || toIndex === undefined
+        ? null
+        : roadMatrix.distances?.[fromIndex]?.[toIndex];
+
+      if (distance === null || distance === undefined) {
+        throw new Error(`No road distance found between ${from.id} and ${to.id}`);
+      }
+
+      return distance;
+    };
+
+    const remaining = new Set(allLocations.filter((location) => location.id !== depot.id).map((location) => location.id));
     const routes: Route[] = [];
 
     for (const vehicle of vehiclesResult.rows) {
@@ -47,37 +52,56 @@ export async function POST() {
             if (!location) return false;
             return load + location.demand <= vehicle.capacity;
           })
-          .sort((a, b) => distance(current, a) - distance(current, b))[0];
+          .sort((a, b) => roadDistance(current, a) - roadDistance(current, b))[0];
 
         if (!next) break;
 
         stops.push(next.id);
         remaining.delete(next.id);
         load += next.demand;
-        routeDistance += distance(current, next);
+        routeDistance += roadDistance(current, next);
         current = next;
       }
 
       if (stops.length > 1) {
         stops.push(depot.id);
-        routeDistance += distance(current, depot);
+        routeDistance += roadDistance(current, depot);
         routes.push({
           vehicleId: vehicle.id,
           vehicleName: vehicle.name,
           stops,
           load,
-          distance: Number(routeDistance.toFixed(2)),
+          distance: Number((routeDistance / 1000).toFixed(2)),
+          durationMinutes: 0,
         });
       }
     }
 
+    const enrichedRoutes = await Promise.all(
+      routes.map(async (route) => {
+        const routeLocations = route.stops
+          .map((id) => locations.get(id))
+          .filter((location): location is Location => Boolean(location));
+        const roadRoute = await getRoadRoute(routeLocations);
+
+        return {
+          ...route,
+          durationMinutes: Math.round(roadRoute.duration / 60),
+          geometry: roadRoute.geometry,
+        };
+      }),
+    );
+
     return NextResponse.json({
       algorithm: "nearest-neighbor-capacity-greedy",
-      routes,
-      unassigned: [...remaining].map((id) => locations.get(id)).filter(Boolean),
+      routingEngine: "OSRM",
+      routes: enrichedRoutes,
+      unassigned: [...remaining]
+        .map((id) => locations.get(id))
+        .filter((location): location is Location => Boolean(location)),
     });
   } catch (error) {
     console.error("Failed to optimize routes", error);
-    return NextResponse.json({ error: "Unable to optimize routes" }, { status: 500 });
+    return NextResponse.json({ error: "Unable to optimize routes using road distances" }, { status: 502 });
   }
 }

@@ -22,4 +22,9 @@ export type Route = {
   stops: number[];
   load: number;
   distance: number;
+  durationMinutes: number;
+  geometry?: {
+    type: "LineString";
+    coordinates: [number, number][];
+  };
 };
