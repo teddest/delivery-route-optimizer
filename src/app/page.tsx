@@ -155,7 +155,7 @@ export default function Home() {
                     <span className="flex-1 text-sm font-medium">{route.vehicleName}</span>
                     <span className="text-xs text-slate-500">{route.load} load</span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">{route.stops.length - 2} stops · {route.distance.toFixed(1)} km · {route.durationMinutes} min</p>
+                  <p className="mt-2 text-xs text-slate-500">{route.depotName} · {route.stops.length - 2} stops · {route.distance.toFixed(1)} km · {route.durationMinutes} min</p>
                   <p className="mt-2 truncate font-mono text-[11px] text-slate-400">{route.stops.join(" → ")}</p>
                 </button>
               ))}

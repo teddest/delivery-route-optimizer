@@ -18,8 +18,9 @@ The active scenario uses official address points from:
 - [San Francisco Enterprise Addressing System](https://data.sf.gov/resource/3mea-di5p.json)
 - [Alameda County Address Points](https://hub.arcgis.com/datasets/4610acbf49364583986d45ee4106cc3f)
 - [City of Santa Clara Active Addresses](https://map.santaclaraca.gov/maps/rest/services/OPENDATA/CSCAddress_Active/MapServer/0)
+- [City of Salinas Site Address Points](https://salinas-gis.ci.salinas.ca.us/arcgis/rest/services/Address/Site_Address_Points/FeatureServer/0)
 
-The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, 10 Berkeley addresses, and 10 Santa Clara addresses, plus `701 MARKET ST` as the demonstration distribution center.
+The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, 10 Berkeley addresses, 10 Santa Clara addresses, and 10 Salinas addresses. It has two demonstration distribution centers: `701 MARKET ST` and a Salinas address from the city address layer.
 
 The original CVRPLIB `A-n32-k5` benchmark is preserved at `data/A-n32-k5.vrp` for future solver comparison. Its abstract coordinates are no longer used for the active map scenario.
 
@@ -66,13 +67,15 @@ pnpm db:reset    # Delete the volume and recreate the database (destructive)
 
 ## Current functionality
 
-- Load real San Francisco addresses from PostGIS
-- Display the depot and customer addresses on a Leaflet map
+- Load real Bay Area addresses from PostGIS
+- Display both distribution centers and customer addresses on a Leaflet map
 - Show address details in point popups
 - Run a capacity-aware nearest-neighbor baseline optimizer
+- Assign stops to the nearest depot by road distance
+- Run five Bay Area vehicles and three Salinas vehicles
 - Calculate road distance and duration using OSRM
 - Display detailed street-following route geometry on the map
-- Show vehicle loads, stops, route distance, and travel duration
+- Show vehicle loads, stops, route distance, duration, and depot
 
 The current optimizer is intentionally a baseline. The next step is replacing the greedy assignment with OR-Tools while retaining the OSRM road matrix.
 
@@ -92,5 +95,7 @@ db/init/003_seed_oakland_berkeley_addresses.sql
                                   Real East Bay address migration
 db/init/004_seed_santa_clara_addresses.sql
                                   Santa Clara address migration
+db/init/005_seed_salinas_depot.sql
+                                  Salinas depot, stops, and vehicles
 docker-compose.yml               Local PostGIS service
 ```

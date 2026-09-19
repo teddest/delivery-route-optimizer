@@ -64,10 +64,11 @@ export function RouteMap({ locations, routes, selectedVehicleId }: RouteMapProps
       }
 
       for (const location of locations) {
+        const isDepot = location.name.includes("Distribution Center");
         L.circleMarker([location.lat, location.lng], {
-          radius: location.id === 1 ? 9 : 5,
+          radius: isDepot ? 9 : 5,
           color: "#ffffff",
-          fillColor: location.id === 1 ? "#0f172a" : "#64748b",
+          fillColor: isDepot ? "#0f172a" : "#64748b",
           fillOpacity: 1,
           weight: 2,
         })

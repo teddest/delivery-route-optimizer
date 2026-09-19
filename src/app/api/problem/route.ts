@@ -15,7 +15,7 @@ export async function GET() {
           ST_Y(location)::float8 AS lat
         FROM locations ORDER BY id
       `),
-      db.query<Vehicle>("SELECT id, name, capacity FROM vehicles ORDER BY id"),
+      db.query<Vehicle>('SELECT id, name, capacity, depot_id AS "depotId" FROM vehicles ORDER BY id'),
     ]);
 
     return NextResponse.json({ locations: locations.rows, vehicles: vehicles.rows });

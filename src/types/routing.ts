@@ -14,10 +14,14 @@ export type Vehicle = {
   id: number;
   name: string;
   capacity: number;
+  depotId: number;
+
 };
 
 export type Route = {
   vehicleId: number;
+  depotId: number;
+  depotName: string;
   vehicleName: string;
   stops: number[];
   load: number;

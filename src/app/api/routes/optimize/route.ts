@@ -12,14 +12,20 @@ export async function POST() {
           ST_Y(location)::float8 AS lat
         FROM locations ORDER BY id
       `),
-      db.query<Vehicle>("SELECT id, name, capacity FROM vehicles ORDER BY id"),
+      db.query<Vehicle>('SELECT id, name, capacity, depot_id AS "depotId" FROM vehicles ORDER BY id'),
     ]);
 
     const allLocations = locationsResult.rows;
     const locations = new Map(allLocations.map((location) => [location.id, location]));
     const locationIndexes = new Map(allLocations.map((location, index) => [location.id, index]));
-    const depot = locations.get(1);
-    if (!depot) throw new Error("The routing problem has no depot.");
+    const depotIds = [...new Set(vehiclesResult.rows.map((vehicle) => vehicle.depotId))];
+    const depots = new Map(
+      depotIds.map((depotId) => {
+        const depot = locations.get(depotId);
+        if (!depot) throw new Error(`The routing problem has no location for depot ${depotId}.`);
+        return [depotId, depot];
+      }),
+    );
 
     const roadMatrix = await getRoadMatrix(allLocations);
     const roadDistance = (from: Location, to: Location) => {
@@ -36,16 +42,34 @@ export async function POST() {
       return distance;
     };
 
-    const remaining = new Set(allLocations.filter((location) => location.id !== depot.id).map((location) => location.id));
+    // Assign each delivery stop to the nearest depot by road distance. Vehicles
+    // belonging to that depot then optimize only their assigned stops.
+    const assignedStops = new Map<number, Set<number>>(depotIds.map((depotId) => [depotId, new Set()]));
+    for (const location of allLocations) {
+      if (depotIds.includes(location.id)) continue;
+
+      const nearestDepotId = depotIds
+        .sort((a, b) => roadDistance(locations.get(a)!, location) - roadDistance(locations.get(b)!, location))[0];
+      assignedStops.get(nearestDepotId)?.add(location.id);
+    }
+
     const routes: Route[] = [];
 
     for (const vehicle of vehiclesResult.rows) {
+      const depot = depots.get(vehicle.depotId);
+      const remaining = assignedStops.get(vehicle.depotId);
+      const depotVehicles = vehiclesResult.rows.filter((candidate) => candidate.depotId === vehicle.depotId);
+      const depotVehicleIndex = depotVehicles.findIndex((candidate) => candidate.id === vehicle.id);
+      const routesRemaining = depotVehicles.length - depotVehicleIndex;
+      if (!depot || !remaining || routesRemaining <= 0) continue;
+
+      const targetStops = Math.max(1, Math.ceil(remaining.size / routesRemaining));
       const stops = [depot.id];
       let current = depot;
       let load = 0;
       let routeDistance = 0;
 
-      while (remaining.size > 0) {
+      while (remaining.size > 0 && stops.length - 1 < targetStops) {
         const next = [...remaining]
           .map((id) => locations.get(id))
           .filter((location): location is Location => {
@@ -69,6 +93,8 @@ export async function POST() {
         routes.push({
           vehicleId: vehicle.id,
           vehicleName: vehicle.name,
+          depotId: depot.id,
+          depotName: depot.name,
           stops,
           load,
           distance: Number((routeDistance / 1000).toFixed(2)),
@@ -92,11 +118,14 @@ export async function POST() {
       }),
     );
 
+    const unassigned = depotIds.flatMap((depotId) => [...(assignedStops.get(depotId) ?? [])]);
+
     return NextResponse.json({
       algorithm: "nearest-neighbor-capacity-greedy",
       routingEngine: "OSRM",
+      depots: depotIds,
       routes: enrichedRoutes,
-      unassigned: [...remaining]
+      unassigned: unassigned
         .map((id) => locations.get(id))
         .filter((location): location is Location => Boolean(location)),
     });
