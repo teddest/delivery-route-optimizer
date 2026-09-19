@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Delivery Route Optimizer",
-  description: "Explore and optimize capacitated delivery routes.",
+  title: "East Region LTL Network",
+  description: "Plan linehaul freight between distribution centers."
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

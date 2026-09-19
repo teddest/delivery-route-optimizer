@@ -1,6 +1,6 @@
 # East Region LTL Network
 
-A Next.js + PostgreSQL/PostGIS application for planning an LTL carrier network east of the Mississippi River.
+A Next.js + PostgreSQL/PostGIS application for planning LTL freight movement between distribution centers east of the Mississippi River.
 
 ## Stack
 
@@ -14,25 +14,24 @@ A Next.js + PostgreSQL/PostGIS application for planning an LTL carrier network e
 
 ## Active scenario
 
-The active seed is defined in:
+The active network is seeded by:
 
 ```text
 db/init/008_seed_ltl_east_network.sql
+db/init/009_seed_linehaul_network.sql
 ```
 
-It replaces the earlier regional demo data with:
+It contains:
 
 - 26 distribution centers across the eastern United States
-- A 150-mile geodesic service radius for every center
-- 3 deterministic LTL account stops per center
-- 3 vehicles per distribution center
-- 78 vehicles total
+- A 150-mile service-radius network for pickup coverage
+- 15 LTL shipments between distribution centers
+- 16 linehaul vehicles with 26-pallet capacity
+- Freight lanes such as Atlanta → Boston, Chicago → Boston, Miami → Philadelphia, and Washington → Miami
 
-The network includes hubs across New England, the Mid-Atlantic, the Southeast, the Great Lakes, and the Midwest while avoiding a St. Louis-style west-of-Mississippi hub.
+The earlier regional stop seed data remains in the repository for history. Migration `008` replaces the active location and local-vehicle tables, while migration `009` adds the active linehaul shipment and vehicle model.
 
-The older geographic seed migrations remain in the repository for history and reproducibility. Migration `008` truncates the active tables and initializes the new LTL network as the final seed state.
-
-## Reset and start
+## Getting started
 
 Docker Desktop must be running.
 
@@ -49,40 +48,58 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```bash
 curl http://localhost:3000/api/health
-curl http://localhost:3000/api/problem
-curl -X POST http://localhost:3000/api/routes/optimize
+curl http://localhost:3000/api/linehaul/problem
+curl -X POST http://localhost:3000/api/linehaul/optimize
 ```
 
-## Coverage rules
+## Linehaul model
 
-Each delivery stop is assigned to its nearest distribution center only when it falls inside that center's `service_radius_miles` value. Stops outside every service radius are returned as unassigned.
+A shipment moves between two distribution centers. It is not modeled as a local customer stop.
 
-Route ordering uses OSRM street distances. Detailed route geometry and drive durations are also fetched from OSRM. The geographic assignment step uses the Haversine distance to keep OSRM table requests small enough for the public development service.
+```text
+shipments
+  origin_depot_id
+  destination_depot_id
+  pallets
+  weight_lbs
+  delivery_deadline_hours
 
-The public OSRM endpoint is appropriate for development and demos, not production-scale planning. A production deployment should run a dedicated OSRM/Valhalla instance or use a hosted routing provider.
+linehaul_vehicles
+  home_depot_id
+  capacity_pallets
+```
+
+The optimizer groups compatible shipments by origin and destination, consolidates them into vehicle loads, and calculates the direct OSRM road route between the two hubs.
+
+The current planner is a direct-lane baseline. Relay-hub planning can be added later for routes such as:
+
+```text
+Atlanta → Charlotte → Washington → Boston
+```
 
 ## Current functionality
 
-- Select from 26 distribution centers
-- Filter routes by selected distribution center
-- Display the eastern network on a dominant map workspace
-- Enforce 150-mile service-radius coverage
-- Generate three LTL routes per center
-- Use actual street-following route geometry
-- Animate a selected vehicle route
-- Show unassigned stops when coverage rules are violated
+- Select and inspect distribution-center-to-distribution-center shipments
+- Consolidate compatible shipments into 26-pallet linehaul loads
+- Generate direct linehaul routes
+- Display road-following route geometry
+- Show distance, duration, pallets, weight, and shipment references
+- Animate a selected linehaul route on the map
+
+The public OSRM endpoint is suitable for development and demos, not production-scale planning. A production deployment should run a dedicated OSRM/Valhalla instance or use a hosted routing provider.
 
 ## Project structure
 
 ```text
-src/app/api/problem/             LTL network problem API
-src/app/api/routes/optimize/     Multi-depot route optimization API
-src/components/route-map.tsx     Leaflet map and route rendering
-src/lib/osrm.ts                  OSRM table and route client
-src/lib/db.ts                    Shared PostgreSQL connection pool
-src/types/routing.ts             Shared route types
-data/A-n32-k5.vrp                Original CVRPLIB reference instance
+src/app/api/linehaul/problem/      Linehaul network and shipment API
+src/app/api/linehaul/optimize/     Direct linehaul optimization API
+src/components/linehaul-map.tsx    Hub and route map
+src/lib/osrm.ts                    OSRM route client
+src/lib/db.ts                      Shared PostgreSQL connection pool
+src/types/linehaul.ts              Shipment and route types
 db/init/008_seed_ltl_east_network.sql
-                                  Active eastern LTL network seed
-docker-compose.yml               Local PostGIS service
+                                   Eastern distribution-center network
+db/init/009_seed_linehaul_network.sql
+                                   Shipments and linehaul vehicles
+docker-compose.yml                 Local PostGIS service
 ```
