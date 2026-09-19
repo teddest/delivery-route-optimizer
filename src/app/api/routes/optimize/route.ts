@@ -3,6 +3,19 @@ import { db } from "@/lib/db";
 import { getRoadMatrix, getRoadRoute } from "@/lib/osrm";
 import type { Location, Route, Vehicle } from "@/types/routing";
 
+function geographicDistance(from: Location, to: Location) {
+  const earthRadiusKm = 6371;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const deltaLat = ((to.lat - from.lat) * Math.PI) / 180;
+  const deltaLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
 export async function POST() {
   try {
     const [locationsResult, vehiclesResult] = await Promise.all([
@@ -17,7 +30,6 @@ export async function POST() {
 
     const allLocations = locationsResult.rows;
     const locations = new Map(allLocations.map((location) => [location.id, location]));
-    const locationIndexes = new Map(allLocations.map((location, index) => [location.id, index]));
     const depotIds = [...new Set(vehiclesResult.rows.map((vehicle) => vehicle.depotId))];
     const depots = new Map(
       depotIds.map((depotId) => {
@@ -27,30 +39,33 @@ export async function POST() {
       }),
     );
 
-    const roadMatrix = await getRoadMatrix(allLocations);
-    const roadDistance = (from: Location, to: Location) => {
-      const fromIndex = locationIndexes.get(from.id);
-      const toIndex = locationIndexes.get(to.id);
-      const distance = fromIndex === undefined || toIndex === undefined
-        ? null
-        : roadMatrix.distances?.[fromIndex]?.[toIndex];
-
-      if (distance === null || distance === undefined) {
-        throw new Error(`No road distance found between ${from.id} and ${to.id}`);
-      }
-
-      return distance;
-    };
-
-    // Assign each delivery stop to the nearest depot by road distance. Vehicles
-    // belonging to that depot then optimize only their assigned stops.
+    // Keep each OSRM table request below the public service's coordinate limit.
+    // Depot assignment uses geographic proximity; route ordering and geometry
+    // use OSRM road distances below.
     const assignedStops = new Map<number, Set<number>>(depotIds.map((depotId) => [depotId, new Set()]));
     for (const location of allLocations) {
       if (depotIds.includes(location.id)) continue;
 
-      const nearestDepotId = depotIds
-        .sort((a, b) => roadDistance(locations.get(a)!, location) - roadDistance(locations.get(b)!, location))[0];
+      const nearestDepotId = [...depotIds]
+        .sort((a, b) => geographicDistance(locations.get(a)!, location) - geographicDistance(locations.get(b)!, location))[0];
       assignedStops.get(nearestDepotId)?.add(location.id);
+    }
+
+    const roadDataByDepot = new Map<number, {
+      locations: Location[];
+      indexes: Map<number, number>;
+      distances: (number | null)[][];
+    }>();
+
+    for (const depotId of depotIds) {
+      const depot = depots.get(depotId)!;
+      const groupLocations = [depot, ...[...(assignedStops.get(depotId) ?? [])].map((id) => locations.get(id)!).filter(Boolean)];
+      const roadMatrix = await getRoadMatrix(groupLocations);
+      roadDataByDepot.set(depotId, {
+        locations: groupLocations,
+        indexes: new Map(groupLocations.map((location, index) => [location.id, index])),
+        distances: roadMatrix.distances ?? [],
+      });
     }
 
     const routes: Route[] = [];
@@ -58,10 +73,23 @@ export async function POST() {
     for (const vehicle of vehiclesResult.rows) {
       const depot = depots.get(vehicle.depotId);
       const remaining = assignedStops.get(vehicle.depotId);
+      const roadData = roadDataByDepot.get(vehicle.depotId);
       const depotVehicles = vehiclesResult.rows.filter((candidate) => candidate.depotId === vehicle.depotId);
       const depotVehicleIndex = depotVehicles.findIndex((candidate) => candidate.id === vehicle.id);
       const routesRemaining = depotVehicles.length - depotVehicleIndex;
-      if (!depot || !remaining || routesRemaining <= 0) continue;
+      if (!depot || !remaining || !roadData || routesRemaining <= 0) continue;
+
+      const roadDistance = (from: Location, to: Location) => {
+        const fromIndex = roadData.indexes.get(from.id);
+        const toIndex = roadData.indexes.get(to.id);
+        const distance = fromIndex === undefined || toIndex === undefined
+          ? null
+          : roadData.distances[fromIndex]?.[toIndex];
+        if (distance === null || distance === undefined) {
+          throw new Error(`No road distance found between ${from.id} and ${to.id}`);
+        }
+        return distance;
+      };
 
       const targetStops = Math.max(1, Math.ceil(remaining.size / routesRemaining));
       const stops = [depot.id];
@@ -121,7 +149,7 @@ export async function POST() {
     const unassigned = depotIds.flatMap((depotId) => [...(assignedStops.get(depotId) ?? [])]);
 
     return NextResponse.json({
-      algorithm: "nearest-neighbor-capacity-greedy",
+      algorithm: "nearest-depot-geographic-capacity-greedy",
       routingEngine: "OSRM",
       depots: depotIds,
       routes: enrichedRoutes,

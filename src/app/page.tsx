@@ -85,7 +85,7 @@ export default function Home() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-bold text-white">RO</div>
             <div>
               <p className="text-sm font-semibold tracking-tight">Delivery Route Optimizer</p>
-              <p className="text-xs text-slate-500">San Francisco routing lab</p>
+              <p className="text-xs text-slate-500">Regional routing lab</p>
             </div>
           </div>
           <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-700" onClick={() => setReloadToken((token) => token + 1)} type="button">Reset problem</button>
@@ -98,7 +98,7 @@ export default function Home() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Optimization workspace</p>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Turn stops into routes.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Optimize a real Bay Area delivery scenario using official address points from San Francisco, Oakland, and Berkeley.
+              Optimize a multi-depot delivery scenario spanning San Luis Obispo, Fresno, the Bay Area, and Southern California.
             </p>
           </div>
           <button
@@ -133,7 +133,7 @@ export default function Home() {
             <div className="flex items-center justify-between border-b border-slate-200 p-4">
               <div>
                 <h2 className="font-semibold">Route map</h2>
-                <p className="mt-1 text-xs text-slate-500">Bay Area addresses · depot, stops, and generated road routes</p>
+                <p className="mt-1 text-xs text-slate-500">Regional addresses · depots, stops, and generated road routes</p>
               </div>
               <span className="text-xs text-slate-400">Total demand: {totalDemand}</span>
             </div>

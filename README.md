@@ -22,8 +22,10 @@ The active scenario uses official address points from:
 - [LA County CAMS Address Points](https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services/eGIS_Addressing_ADDRESS_POINTSv2/FeatureServer)
 - [Riverside County Address Points](https://gis.countyofriverside.us/arcgis/rest/services/mmc/mmc_mSrvc/MapServer/4)
 - [OpenStreetMap Oxnard address data](https://www.openstreetmap.org/)
+- [City of San Luis Obispo Address Points](https://mapsa.slocity.org/hosting/rest/services/sloGISlayers/gisLandManagementWM/FeatureServer/2)
+- [OpenStreetMap Fresno address data](https://www.openstreetmap.org/)
 
-The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, 10 Berkeley addresses, 10 Santa Clara addresses, 10 Salinas addresses, 8 Oxnard addresses, 8 Los Angeles addresses, and 8 Riverside addresses. It has three demonstration distribution centers: `701 MARKET ST`, a Salinas address, and `500 Spring Street, Los Angeles`.
+The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, 10 Berkeley addresses, 10 Santa Clara addresses, 10 Salinas addresses, 8 Oxnard addresses, 8 Los Angeles addresses, 8 Riverside addresses, 10 San Luis Obispo addresses, and 10 Fresno addresses. It has five demonstration distribution centers: San Francisco, Salinas, Los Angeles, San Luis Obispo, and Fresno.
 
 The original CVRPLIB `A-n32-k5` benchmark is preserved at `data/A-n32-k5.vrp` for future solver comparison. Its abstract coordinates are no longer used for the active map scenario.
 
@@ -75,8 +77,8 @@ pnpm db:reset    # Delete the volume and recreate the database (destructive)
 - Show address details in point popups
 - Run a capacity-aware nearest-neighbor baseline optimizer
 - Assign stops to the nearest depot by road distance
-- Run five Bay Area vehicles, three Salinas vehicles, and ten Los Angeles vehicles
-- Cover the Southern California corridor from Oxnard through Los Angeles to Riverside
+- Run five Bay Area vehicles, three Salinas vehicles, ten Los Angeles vehicles, three San Luis Obispo vehicles, and three Fresno vehicles
+- Cover the regional corridor from San Luis Obispo and Fresno through Oxnard, Los Angeles, and Riverside
 - Calculate road distance and duration using OSRM
 - Display detailed street-following route geometry on the map
 - Show vehicle loads, stops, route distance, duration, and depot
@@ -103,5 +105,7 @@ db/init/005_seed_salinas_depot.sql
                                   Salinas depot, stops, and vehicles
 db/init/006_seed_los_angeles_region.sql
                                   LA depot, regional stops, and vehicles
+db/init/007_seed_slo_fresno.sql
+                                  SLO and Fresno depots, stops, and vehicles
 docker-compose.yml               Local PostGIS service
 ```
