@@ -19,17 +19,18 @@ The active network is seeded by:
 ```text
 db/init/008_seed_ltl_east_network.sql
 db/init/009_seed_linehaul_network.sql
+db/init/010_expand_east_150_mile_network.sql
 ```
 
 It contains:
 
-- 26 distribution centers across the eastern United States
-- A 150-mile service-radius network for pickup coverage
+- 50 distribution centers across the eastern United States
+- A denser 150-mile service-radius network for pickup coverage
 - 15 LTL shipments between distribution centers
-- 16 linehaul vehicles with 26-pallet capacity
+- 88 linehaul vehicles with 26-pallet capacity
 - Freight lanes such as Atlanta → Boston, Chicago → Boston, Miami → Philadelphia, and Washington → Miami
 
-The earlier regional stop seed data remains in the repository for history. Migration `008` replaces the active location and local-vehicle tables, while migration `009` adds the active linehaul shipment and vehicle model.
+The earlier regional stop seed data remains in the repository for history. Migration `008` replaces the active location and local-vehicle tables, migration `009` adds the active linehaul shipment and vehicle model, and migration `010` expands the hub network.
 
 ## Getting started
 
@@ -103,5 +104,7 @@ db/init/008_seed_ltl_east_network.sql
                                    Eastern distribution-center network
 db/init/009_seed_linehaul_network.sql
                                    Shipments and linehaul vehicles
+db/init/010_expand_east_150_mile_network.sql
+                                   Additional 150-mile coverage hubs
 docker-compose.yml                 Local PostGIS service
 ```
