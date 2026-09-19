@@ -19,8 +19,11 @@ The active scenario uses official address points from:
 - [Alameda County Address Points](https://hub.arcgis.com/datasets/4610acbf49364583986d45ee4106cc3f)
 - [City of Santa Clara Active Addresses](https://map.santaclaraca.gov/maps/rest/services/OPENDATA/CSCAddress_Active/MapServer/0)
 - [City of Salinas Site Address Points](https://salinas-gis.ci.salinas.ca.us/arcgis/rest/services/Address/Site_Address_Points/FeatureServer/0)
+- [LA County CAMS Address Points](https://services.arcgis.com/RmCCgQtiZLDCtblq/arcgis/rest/services/eGIS_Addressing_ADDRESS_POINTSv2/FeatureServer)
+- [Riverside County Address Points](https://gis.countyofriverside.us/arcgis/rest/services/mmc/mmc_mSrvc/MapServer/4)
+- [OpenStreetMap Oxnard address data](https://www.openstreetmap.org/)
 
-The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, 10 Berkeley addresses, 10 Santa Clara addresses, and 10 Salinas addresses. It has two demonstration distribution centers: `701 MARKET ST` and a Salinas address from the city address layer.
+The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, 10 Berkeley addresses, 10 Santa Clara addresses, 10 Salinas addresses, 8 Oxnard addresses, 8 Los Angeles addresses, and 8 Riverside addresses. It has three demonstration distribution centers: `701 MARKET ST`, a Salinas address, and `500 Spring Street, Los Angeles`.
 
 The original CVRPLIB `A-n32-k5` benchmark is preserved at `data/A-n32-k5.vrp` for future solver comparison. Its abstract coordinates are no longer used for the active map scenario.
 
@@ -72,7 +75,8 @@ pnpm db:reset    # Delete the volume and recreate the database (destructive)
 - Show address details in point popups
 - Run a capacity-aware nearest-neighbor baseline optimizer
 - Assign stops to the nearest depot by road distance
-- Run five Bay Area vehicles and three Salinas vehicles
+- Run five Bay Area vehicles, three Salinas vehicles, and ten Los Angeles vehicles
+- Cover the Southern California corridor from Oxnard through Los Angeles to Riverside
 - Calculate road distance and duration using OSRM
 - Display detailed street-following route geometry on the map
 - Show vehicle loads, stops, route distance, duration, and depot
@@ -97,5 +101,7 @@ db/init/004_seed_santa_clara_addresses.sql
                                   Santa Clara address migration
 db/init/005_seed_salinas_depot.sql
                                   Salinas depot, stops, and vehicles
+db/init/006_seed_los_angeles_region.sql
+                                  LA depot, regional stops, and vehicles
 docker-compose.yml               Local PostGIS service
 ```

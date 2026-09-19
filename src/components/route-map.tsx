@@ -75,6 +75,13 @@ export function RouteMap({ locations, routes, selectedVehicleId }: RouteMapProps
           .addTo(instance)
           .bindPopup(`<strong>${location.name}</strong><br />${location.address ?? "No address"}<br />Demand: ${location.demand}`);
       }
+
+      if (locations.length > 1) {
+        instance.fitBounds(
+          L.latLngBounds(locations.map((location) => [location.lat, location.lng] as [number, number])),
+          { padding: [30, 30] },
+        );
+      }
     }
 
     initializeMap();
