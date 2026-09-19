@@ -9,10 +9,11 @@ const routeColors = ["#4f46e5", "#0d9488", "#d97706", "#db2777", "#16a34a"];
 type RouteMapProps = {
   locations: Location[];
   routes: Route[];
+  selectedDepotId: number | null;
   selectedVehicleId: number | null;
 };
 
-export function RouteMap({ locations, routes, selectedVehicleId }: RouteMapProps) {
+export function RouteMap({ locations, routes, selectedDepotId, selectedVehicleId }: RouteMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
   const animationMarker = useRef<Leaflet.CircleMarker | null>(null);
@@ -95,6 +96,15 @@ export function RouteMap({ locations, routes, selectedVehicleId }: RouteMapProps
       map.current = null;
     };
   }, [locations, routes]);
+
+  useEffect(() => {
+    if (selectedDepotId === null || !map.current) return;
+
+    const depot = locations.find((location) => location.id === selectedDepotId);
+    if (!depot) return;
+
+    map.current.flyTo([depot.lat, depot.lng], 11, { duration: 0.8 });
+  }, [locations, selectedDepotId]);
 
   useEffect(() => {
     if (!selectedVehicleId || !map.current) return;

@@ -138,7 +138,12 @@ export default function Home() {
               <span className="text-xs text-slate-400">Total demand: {totalDemand}</span>
             </div>
             <div className="min-h-0 flex-1">
-              <RouteMap locations={locations} routes={routes} selectedVehicleId={selectedVehicleId} />
+              <RouteMap
+                locations={locations}
+                routes={routes}
+                selectedDepotId={selectedDepotId}
+                selectedVehicleId={selectedVehicleId}
+              />
             </div>
           </div>
 
