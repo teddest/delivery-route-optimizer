@@ -20,7 +20,8 @@ export async function POST() {
   try {
     const [locationsResult, vehiclesResult] = await Promise.all([
       db.query<Location>(`
-        SELECT id, name, address, source_id AS "sourceId", demand, x, y,
+        SELECT id, name, address, source_id AS "sourceId", demand,
+          service_radius_miles AS "serviceRadiusMiles", x, y,
           ST_X(location)::float8 AS lng,
           ST_Y(location)::float8 AS lat
         FROM locations ORDER BY id
@@ -43,10 +44,22 @@ export async function POST() {
     // Depot assignment uses geographic proximity; route ordering and geometry
     // use OSRM road distances below.
     const assignedStops = new Map<number, Set<number>>(depotIds.map((depotId) => [depotId, new Set()]));
+    const unassignedIds = new Set<number>();
     for (const location of allLocations) {
       if (depotIds.includes(location.id)) continue;
 
-      const nearestDepotId = [...depotIds]
+      const eligibleDepots = depotIds.filter((depotId) => {
+        const depot = locations.get(depotId)!;
+        const radius = depot.serviceRadiusMiles ?? 150;
+        return geographicDistance(depot, location) <= radius;
+      });
+
+      if (eligibleDepots.length === 0) {
+        unassignedIds.add(location.id);
+        continue;
+      }
+
+      const nearestDepotId = eligibleDepots
         .sort((a, b) => geographicDistance(locations.get(a)!, location) - geographicDistance(locations.get(b)!, location))[0];
       assignedStops.get(nearestDepotId)?.add(location.id);
     }
@@ -146,7 +159,10 @@ export async function POST() {
       }),
     );
 
-    const unassigned = depotIds.flatMap((depotId) => [...(assignedStops.get(depotId) ?? [])]);
+    const unassigned = [
+      ...unassignedIds,
+      ...depotIds.flatMap((depotId) => [...(assignedStops.get(depotId) ?? [])]),
+    ];
 
     return NextResponse.json({
       algorithm: "nearest-depot-geographic-capacity-greedy",

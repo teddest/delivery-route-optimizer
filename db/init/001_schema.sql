@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   capacity INTEGER NOT NULL CHECK (capacity > 0),
-  depot_id INTEGER NOT NULL DEFAULT 1 REFERENCES locations(id)
+  depot_id INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS locations_location_gist_idx ON locations USING GIST (location);
 

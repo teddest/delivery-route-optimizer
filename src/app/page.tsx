@@ -73,6 +73,7 @@ export default function Home() {
   const totalDistance = routes.reduce((sum, route) => sum + route.distance, 0);
   const assignedStops = routes.reduce((sum, route) => sum + route.stops.length - 2, 0);
   const distributionCenters = locations.filter((location) => location.name.includes("Distribution Center"));
+  const customerLocations = locations.filter((location) => !location.name.includes("Distribution Center"));
   const selectedDepotRoutes = selectedDepotId === null
     ? []
     : routes.filter((route) => route.depotId === selectedDepotId);
@@ -84,8 +85,8 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-bold text-white">RO</div>
             <div>
-              <p className="text-sm font-semibold tracking-tight">Delivery Route Optimizer</p>
-              <p className="text-xs text-slate-500">Regional routing lab</p>
+              <p className="text-sm font-semibold tracking-tight">East Region LTL Network</p>
+              <p className="text-xs text-slate-500">150-mile service coverage lab</p>
             </div>
           </div>
           <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-700" onClick={() => setReloadToken((token) => token + 1)} type="button">Reset problem</button>
@@ -96,9 +97,9 @@ export default function Home() {
         <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Optimization workspace</p>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Turn stops into routes.</h1>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Build the eastern LTL network.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Optimize a multi-depot delivery scenario spanning San Luis Obispo, Fresno, the Bay Area, and Southern California.
+              Plan less-than-truckload coverage across the eastern United States with a distribution center within 150 miles of every stop.
             </p>
           </div>
           <button
@@ -111,9 +112,10 @@ export default function Home() {
           </button>
         </div>
 
-        <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {[
-            ["Delivery stops", String(Math.max(0, locations.length - 1)), "One depot excluded"],
+            ["Distribution centers", String(distributionCenters.length), "150-mile service radius"],
+            ["Delivery stops", String(customerLocations.length), "LTL accounts"],
             ["Vehicles", String(vehicles.length), "Capacity 100 each"],
             ["Assigned", routes.length ? `${assignedStops} / ${locations.length - 1}` : "—", "After optimization"],
             ["Total distance", routes.length ? `${totalDistance.toFixed(1)} km` : "—", "OSRM road distance"],
@@ -133,7 +135,7 @@ export default function Home() {
             <div className="flex items-center justify-between border-b border-slate-200 p-4">
               <div>
                 <h2 className="font-semibold">Route map</h2>
-                <p className="mt-1 text-xs text-slate-500">Regional addresses · depots, stops, and generated road routes</p>
+                <p className="mt-1 text-xs text-slate-500">East of the Mississippi · 150-mile depot coverage · street routes</p>
               </div>
               <span className="text-xs text-slate-400">Total demand: {totalDemand}</span>
             </div>

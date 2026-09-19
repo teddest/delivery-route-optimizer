@@ -2,6 +2,25 @@ import type { Location } from "@/types/routing";
 
 const OSRM_BASE_URL = "https://router.project-osrm.org";
 
+async function fetchOsrm(url: string) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (response.ok) return response;
+      lastError = new Error(`OSRM request failed with ${response.status}`);
+      if (response.status < 500 && response.status !== 429) break;
+    } catch (error) {
+      lastError = error;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+  }
+
+  throw lastError ?? new Error("OSRM request failed");
+}
+
 type OsrmTableResponse = {
   code: string;
   distances?: (number | null)[][];
@@ -25,12 +44,9 @@ function coordinateString(locations: Location[]) {
 }
 
 export async function getRoadMatrix(locations: Location[]) {
-  const response = await fetch(
+  const response = await fetchOsrm(
     `${OSRM_BASE_URL}/table/v1/driving/${coordinateString(locations)}?annotations=distance,duration`,
-    { cache: "no-store" },
   );
-
-  if (!response.ok) throw new Error(`OSRM table request failed with ${response.status}`);
   const data: OsrmTableResponse = await response.json();
   if (data.code !== "Ok" || !data.distances || !data.durations) {
     throw new Error(`OSRM table request returned ${data.code}`);
@@ -40,12 +56,9 @@ export async function getRoadMatrix(locations: Location[]) {
 }
 
 export async function getRoadRoute(locations: Location[]) {
-  const response = await fetch(
+  const response = await fetchOsrm(
     `${OSRM_BASE_URL}/route/v1/driving/${coordinateString(locations)}?overview=full&geometries=geojson&steps=false`,
-    { cache: "no-store" },
   );
-
-  if (!response.ok) throw new Error(`OSRM route request failed with ${response.status}`);
   const data: OsrmRouteResponse = await response.json();
   const route = data.routes?.[0];
   if (data.code !== "Ok" || !route) throw new Error(`OSRM route request returned ${data.code}`);

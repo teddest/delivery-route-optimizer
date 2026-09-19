@@ -4,6 +4,7 @@ export type Location = {
   address: string | null;
   sourceId: string | null;
   demand: number;
+  serviceRadiusMiles: number | null;
   x: number;
   y: number;
   lng: number;
