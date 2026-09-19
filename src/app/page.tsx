@@ -10,6 +10,7 @@ export default function Home() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
+  const [selectedDepotId, setSelectedDepotId] = useState<number | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -31,6 +32,7 @@ export default function Home() {
           setLocations(data.locations);
           setVehicles(data.vehicles);
           setRoutes([]);
+          setSelectedDepotId(null);
           setSelectedVehicleId(null);
         }
       } catch (requestError) {
@@ -57,6 +59,7 @@ export default function Home() {
       if (!response.ok) throw new Error("Unable to optimize routes.");
       const data: { routes: Route[] } = await response.json();
       setRoutes(data.routes);
+      setSelectedDepotId(null);
       setSelectedVehicleId(null);
     } catch (requestError) {
       console.error(requestError);
@@ -69,6 +72,10 @@ export default function Home() {
   const totalDemand = locations.reduce((sum, location) => sum + location.demand, 0);
   const totalDistance = routes.reduce((sum, route) => sum + route.distance, 0);
   const assignedStops = routes.reduce((sum, route) => sum + route.stops.length - 2, 0);
+  const distributionCenters = locations.filter((location) => location.name.includes("Distribution Center"));
+  const selectedDepotRoutes = selectedDepotId === null
+    ? []
+    : routes.filter((route) => route.depotId === selectedDepotId);
 
   return (
     <main className="min-h-screen bg-[#f5f7fa] text-slate-950">
@@ -137,13 +144,44 @@ export default function Home() {
 
           <aside className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 p-5">
-              <h2 className="font-semibold">Vehicle routes</h2>
-              <p className="mt-1 text-xs text-slate-500">Nearest-neighbor greedy using OSRM road distances</p>
+              <h2 className="font-semibold">Plan routes</h2>
+              <p className="mt-1 text-xs text-slate-500">Select a distribution center, then choose a route</p>
             </div>
+
+            <div className="border-b border-slate-100 p-3">
+              <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-400">Distribution centers</p>
+              <div className="space-y-1">
+                {distributionCenters.map((center) => {
+                  const centerRoutes = routes.filter((route) => route.depotId === center.id);
+                  return (
+                    <button
+                      aria-pressed={selectedDepotId === center.id}
+                      className={`flex w-full items-center gap-3 rounded-lg p-3 text-left transition hover:bg-slate-50 ${selectedDepotId === center.id ? "bg-indigo-50 text-indigo-950" : ""}`}
+                      key={center.id}
+                      onClick={() => {
+                        setSelectedDepotId(center.id);
+                        setSelectedVehicleId(null);
+                      }}
+                      type="button"
+                    >
+                      <span className="h-3 w-3 shrink-0 rounded-full bg-slate-900" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{center.name}</span>
+                        <span className="mt-1 block truncate text-xs text-slate-500">{center.address}</span>
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-500">{centerRoutes.length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="divide-y divide-slate-100">
               {isLoading && <p className="p-5 text-sm text-slate-500">Loading addresses…</p>}
               {!isLoading && routes.length === 0 && <p className="p-5 text-sm text-slate-500">Click “Optimize routes” to assign the delivery stops.</p>}
-              {routes.map((route, index) => (
+              {!isLoading && routes.length > 0 && selectedDepotId === null && <p className="p-5 text-sm text-slate-500">Choose a distribution center to view its routes.</p>}
+              {!isLoading && selectedDepotId !== null && selectedDepotRoutes.length === 0 && <p className="p-5 text-sm text-slate-500">No routes generated for this distribution center.</p>}
+              {selectedDepotRoutes.map((route, index) => (
                 <button
                   className={`block w-full p-5 text-left transition hover:bg-slate-50 ${selectedVehicleId === route.vehicleId ? "bg-indigo-50" : ""}`}
                   key={route.vehicleId}
@@ -155,14 +193,14 @@ export default function Home() {
                     <span className="flex-1 text-sm font-medium">{route.vehicleName}</span>
                     <span className="text-xs text-slate-500">{route.load} load</span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">{route.depotName} · {route.stops.length - 2} stops · {route.distance.toFixed(1)} km · {route.durationMinutes} min</p>
+                  <p className="mt-2 text-xs text-slate-500">{route.stops.length - 2} stops · {route.distance.toFixed(1)} km · {route.durationMinutes} min</p>
                   <p className="mt-2 truncate font-mono text-[11px] text-slate-400">{route.stops.join(" → ")}</p>
                 </button>
               ))}
             </div>
             <div className="m-5 rounded-lg bg-slate-50 p-4">
               <p className="text-xs font-semibold text-slate-700">Road routing</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Points come from official Bay Area address datasets. Routes use the public OSRM street network for distance and duration.</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Select a center to filter its routes, then click a route to animate it on the street network.</p>
             </div>
           </aside>
         </section>
