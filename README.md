@@ -17,8 +17,9 @@ The active scenario uses official address points from:
 
 - [San Francisco Enterprise Addressing System](https://data.sf.gov/resource/3mea-di5p.json)
 - [Alameda County Address Points](https://hub.arcgis.com/datasets/4610acbf49364583986d45ee4106cc3f)
+- [City of Santa Clara Active Addresses](https://map.santaclaraca.gov/maps/rest/services/OPENDATA/CSCAddress_Active/MapServer/0)
 
-The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, and 10 Berkeley addresses, plus `701 MARKET ST` as the demonstration distribution center.
+The app uses a deterministic farthest-point sample of 31 San Francisco customer addresses, 10 Oakland addresses, 10 Berkeley addresses, and 10 Santa Clara addresses, plus `701 MARKET ST` as the demonstration distribution center.
 
 The original CVRPLIB `A-n32-k5` benchmark is preserved at `data/A-n32-k5.vrp` for future solver comparison. Its abstract coordinates are no longer used for the active map scenario.
 
@@ -89,5 +90,7 @@ db/init/002_seed_real_sf_addresses.sql
                                   Real San Francisco address migration
 db/init/003_seed_oakland_berkeley_addresses.sql
                                   Real East Bay address migration
+db/init/004_seed_santa_clara_addresses.sql
+                                  Santa Clara address migration
 docker-compose.yml               Local PostGIS service
 ```
