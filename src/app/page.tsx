@@ -173,6 +173,7 @@ export default function Home() {
                   >
                     <p className="text-xs font-semibold">{route.originName.replace(" Distribution Center", "")} → {route.destinationName.replace(" Distribution Center", "")}</p>
                     <p className="mt-1 text-[11px] text-slate-500">{route.vehicleName} · {route.pallets} pallets · {route.distanceKm} km · {route.durationMinutes} min</p>
+                    <p className="mt-1 truncate text-[11px] text-indigo-600">{route.relayNames?.length ? `via ${route.relayNames.join(" → ")}` : "Direct lane"}</p>
                   </button>
                 ))}
               </div>

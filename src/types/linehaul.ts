@@ -39,6 +39,8 @@ export type LinehaulRoute = {
   weightLbs: number;
   distanceKm: number;
   durationMinutes: number;
+  relayDepotIds: number[];
+  relayNames: string[];
   geometry: {
     type: "LineString";
     coordinates: [number, number][];

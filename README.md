@@ -71,17 +71,19 @@ linehaul_vehicles
 
 The optimizer groups compatible shipments by origin and destination, consolidates them into vehicle loads, and calculates the direct OSRM road route between the two hubs.
 
-The current planner is a direct-lane baseline. Relay-hub planning can be added later for routes such as:
+The planner builds a relay path through distribution centers when a direct leg exceeds 500 miles. For example:
 
 ```text
-Atlanta → Charlotte → Washington → Boston
+Chicago → Cleveland → Albany → Boston
 ```
+
+This prevents long-haul shipments from bypassing the distribution-center network while still using OSRM street routes for every leg.
 
 ## Current functionality
 
 - Select and inspect distribution-center-to-distribution-center shipments
 - Consolidate compatible shipments into 26-pallet linehaul loads
-- Generate direct linehaul routes
+- Generate multi-leg linehaul routes through relay distribution centers
 - Display road-following route geometry
 - Show distance, duration, pallets, weight, and shipment references
 - Animate a selected linehaul route on the map

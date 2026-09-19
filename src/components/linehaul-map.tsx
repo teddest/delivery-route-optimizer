@@ -50,7 +50,7 @@ export function LinehaulMap({ depots, routes, selectedRouteId }: LinehaulMapProp
           opacity: 0.75,
         })
           .addTo(instance)
-          .bindTooltip(`${route.originName} → ${route.destinationName}`);
+          .bindTooltip(`${route.originName} → ${route.destinationName}${route.relayNames?.length ? ` via ${route.relayNames.join(" → ")}` : ""}`);
       }
 
       for (const depot of depots) {
