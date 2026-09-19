@@ -92,8 +92,8 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1600px] px-6 py-8 lg:px-10">
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="mx-auto max-w-[1800px] px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">Optimization workspace</p>
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Turn stops into routes.</h1>
@@ -111,7 +111,7 @@ export default function Home() {
           </button>
         </div>
 
-        <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[
             ["Delivery stops", String(Math.max(0, locations.length - 1)), "One depot excluded"],
             ["Vehicles", String(vehicles.length), "Capacity 100 each"],
@@ -128,8 +128,8 @@ export default function Home() {
 
         {error && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{error}</div>}
 
-        <section className="grid items-stretch gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="flex min-h-[700px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <section className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex min-h-[calc(100vh-260px)] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 p-4">
               <div>
                 <h2 className="font-semibold">Route map</h2>
@@ -147,7 +147,7 @@ export default function Home() {
             </div>
           </div>
 
-          <aside className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <aside className="max-h-[calc(100vh-260px)] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 p-5">
               <h2 className="font-semibold">Plan routes</h2>
               <p className="mt-1 text-xs text-slate-500">Select a distribution center, then choose a route</p>
