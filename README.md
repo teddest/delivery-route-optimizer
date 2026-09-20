@@ -2,6 +2,17 @@
 
 A Next.js + PostgreSQL/PostGIS application for planning LTL freight movement between distribution centers east of the Mississippi River.
 
+The application models **linehaul freight**, not last-mile delivery. A shipment moves from one distribution center to another, may use relay hubs, and is consolidated into vehicle loads.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Data model](docs/DATA_MODEL.md)
+- [API reference](docs/API.md)
+- [Routing and optimization](docs/ROUTING.md)
+- [Seed data and migrations](docs/SEED_DATA.md)
+- [Development and operations](docs/OPERATIONS.md)
+
 ## Stack
 
 - Next.js 16 App Router
@@ -11,46 +22,62 @@ A Next.js + PostgreSQL/PostGIS application for planning LTL freight movement bet
 - Leaflet
 - OSRM road routing
 - `pg` for database access
+- pnpm 10
 
-## Active scenario
+## Current scenario
 
-The active network is seeded by:
+The final seed chain creates:
 
 ```text
-db/init/008_seed_ltl_east_network.sql
-db/init/009_seed_linehaul_network.sql
-db/init/010_expand_east_150_mile_network.sql
-db/init/011_expand_ga_carolinas.sql
-db/init/012_seed_two_shipments_per_depot.sql
-db/init/013_seed_chattanooga_lanes.sql
+66 distribution centers
+155 shipments
+332 linehaul vehicles
+26-pallet vehicle capacity
 ```
 
-It contains:
+The network includes denser hub coverage in Georgia, North Carolina, and South Carolina. Every distribution center has a 150-mile pickup service radius. Chattanooga has additional inbound and outbound freight lanes.
 
-- 66 distribution centers across the eastern United States
-- Dense 150-mile service-radius coverage across Georgia and the Carolinas
-- At least two outbound LTL shipments per distribution center
-- 155 seeded shipments between distribution centers
-- Additional inbound and outbound lanes through Chattanooga
-- 332 linehaul vehicles with 26-pallet capacity
-- Freight lanes such as Atlanta → Boston, Chicago → Boston, Miami → Philadelphia, and Washington → Miami
+Examples include:
 
-The earlier regional stop seed data remains in the repository for history. Migration `008` replaces the active location and local-vehicle tables, migration `009` adds the active linehaul shipment and vehicle model, migration `010` expands the eastern hub network, migration `011` fills Georgia and the Carolinas, migration `012` guarantees outbound shipment demand and vehicle capacity for every hub, and migration `013` increases Chattanooga lane density.
+```text
+Atlanta → Boston
+Chicago → Boston
+Miami → Philadelphia
+Washington → Miami
+Chicago → Cleveland → Albany → Boston
+```
 
-## Getting started
+The last example uses relay distribution centers because direct linehaul legs are capped at approximately 500 miles.
+
+## Quick start
 
 Docker Desktop must be running.
 
 ```bash
+pnpm install
 pnpm db:reset
 pnpm dev
 ```
 
-The database uses host port `5434`.
-
 Open [http://localhost:3000](http://localhost:3000).
 
-## API endpoints
+The local database uses host port `5434`.
+
+## Useful commands
+
+```bash
+pnpm dev          # Start the Next.js development server
+pnpm build        # Create a production build
+pnpm start        # Start the production server
+pnpm lint         # Run ESLint
+
+pnpm db:up        # Start PostGIS in the background
+pnpm db:down      # Stop PostGIS and keep the volume
+pnpm db:logs      # Follow PostgreSQL logs
+pnpm db:reset     # Destroy and recreate the database (destructive)
+```
+
+## API quick reference
 
 ```bash
 curl http://localhost:3000/api/health
@@ -58,64 +85,30 @@ curl http://localhost:3000/api/linehaul/problem
 curl -X POST http://localhost:3000/api/linehaul/optimize
 ```
 
-## Linehaul model
+See the full [API reference](docs/API.md) for response structures and examples.
 
-A shipment moves between two distribution centers. It is not modeled as a local customer stop.
+## Data and reset behavior
 
-```text
-shipments
-  origin_depot_id
-  destination_depot_id
-  pallets
-  weight_lbs
-  delivery_deadline_hours
-
-linehaul_vehicles
-  home_depot_id
-  capacity_pallets
-```
-
-The optimizer groups compatible shipments by origin and destination, consolidates them into vehicle loads, and calculates the direct OSRM road route between the two hubs.
-
-The planner builds a relay path through distribution centers when a direct leg exceeds 500 miles. For example:
+The Docker container runs every SQL file in `db/init/` in lexical order the first time its volume is created. The active network is produced by migrations `008` through `013`:
 
 ```text
-Chicago → Cleveland → Albany → Boston
-```
-
-This prevents long-haul shipments from bypassing the distribution-center network while still using OSRM street routes for every leg.
-
-## Current functionality
-
-- Select and inspect distribution-center-to-distribution-center shipments
-- Consolidate compatible shipments into 26-pallet linehaul loads
-- Generate multi-leg linehaul routes through relay distribution centers
-- Display road-following route geometry
-- Show distance, duration, pallets, weight, and shipment references
-- Animate a selected linehaul route on the map
-
-The public OSRM endpoint is suitable for development and demos, not production-scale planning. A production deployment should run a dedicated OSRM/Valhalla instance or use a hosted routing provider.
-
-## Project structure
-
-```text
-src/app/api/linehaul/problem/      Linehaul network and shipment API
-src/app/api/linehaul/optimize/     Direct linehaul optimization API
-src/components/linehaul-map.tsx    Hub and route map
-src/lib/osrm.ts                    OSRM route client
-src/lib/db.ts                      Shared PostgreSQL connection pool
-src/types/linehaul.ts              Shipment and route types
 db/init/008_seed_ltl_east_network.sql
-                                   Eastern distribution-center network
 db/init/009_seed_linehaul_network.sql
-                                   Shipments and linehaul vehicles
 db/init/010_expand_east_150_mile_network.sql
-                                   Additional 150-mile coverage hubs
 db/init/011_expand_ga_carolinas.sql
-                                   Georgia and Carolina coverage hubs
 db/init/012_seed_two_shipments_per_depot.sql
-                                   Minimum outbound shipment demand per hub
 db/init/013_seed_chattanooga_lanes.sql
-                                   Chattanooga inbound and outbound lanes
-docker-compose.yml                 Local PostGIS service
 ```
+
+Earlier migrations are retained as historical seed work from prior map and routing experiments. Migration `008` clears the active location/local-vehicle tables, and later migrations build the current network on top of them.
+
+Use `pnpm db:reset` after changing seed SQL. `pnpm db:down` does not delete data.
+
+## Current limitations
+
+- The optimizer is a deterministic baseline, not a full commercial LTL optimizer.
+- Shipments are consolidated by origin/destination lane and pallet capacity.
+- Relay paths use a maximum road-leg threshold and a transfer penalty.
+- Driver hours, dock schedules, loading dwell, trailer availability over time, fuel cost, and tender acceptance are not modeled yet.
+- OSRM's public endpoint is suitable for development and demos, not production traffic.
+- The current route planner produces direct multi-leg relay paths; it does not yet model shipment transfer timing at each intermediate hub.
