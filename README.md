@@ -22,6 +22,7 @@ db/init/009_seed_linehaul_network.sql
 db/init/010_expand_east_150_mile_network.sql
 db/init/011_expand_ga_carolinas.sql
 db/init/012_seed_two_shipments_per_depot.sql
+db/init/013_seed_chattanooga_lanes.sql
 ```
 
 It contains:
@@ -29,11 +30,12 @@ It contains:
 - 66 distribution centers across the eastern United States
 - Dense 150-mile service-radius coverage across Georgia and the Carolinas
 - At least two outbound LTL shipments per distribution center
-- 147 seeded shipments between distribution centers
-- 330 linehaul vehicles with 26-pallet capacity
+- 155 seeded shipments between distribution centers
+- Additional inbound and outbound lanes through Chattanooga
+- 332 linehaul vehicles with 26-pallet capacity
 - Freight lanes such as Atlanta → Boston, Chicago → Boston, Miami → Philadelphia, and Washington → Miami
 
-The earlier regional stop seed data remains in the repository for history. Migration `008` replaces the active location and local-vehicle tables, migration `009` adds the active linehaul shipment and vehicle model, migration `010` expands the eastern hub network, migration `011` fills Georgia and the Carolinas, and migration `012` guarantees outbound shipment demand and vehicle capacity for every hub.
+The earlier regional stop seed data remains in the repository for history. Migration `008` replaces the active location and local-vehicle tables, migration `009` adds the active linehaul shipment and vehicle model, migration `010` expands the eastern hub network, migration `011` fills Georgia and the Carolinas, migration `012` guarantees outbound shipment demand and vehicle capacity for every hub, and migration `013` increases Chattanooga lane density.
 
 ## Getting started
 
@@ -113,5 +115,7 @@ db/init/011_expand_ga_carolinas.sql
                                    Georgia and Carolina coverage hubs
 db/init/012_seed_two_shipments_per_depot.sql
                                    Minimum outbound shipment demand per hub
+db/init/013_seed_chattanooga_lanes.sql
+                                   Chattanooga inbound and outbound lanes
 docker-compose.yml                 Local PostGIS service
 ```
